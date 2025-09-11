@@ -31,6 +31,7 @@ const PublicSite: React.FC<{
     const [hasMore, setHasMore] = useState<boolean>(true);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
     const [selectedPolicy, setSelectedPolicy] = useState<PolicyKey | null>(null);
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -59,6 +60,7 @@ const PublicSite: React.FC<{
     }, [articles]);
 
     const handleCategorySelect = (category: Category) => {
+        setSearchQuery(''); // Clear search when a category is selected
         setActiveCategory(category);
         window.scrollTo(0, 0);
     };
@@ -84,12 +86,24 @@ const PublicSite: React.FC<{
         setSelectedPolicy(null);
     };
 
-    const filteredArticles = activeCategory === 'সব খবর'
-        ? articles
-        : articles.filter(a => a.category === activeCategory || CATEGORIES_STRUCTURED.find(c => c.name === activeCategory)?.subcategories?.includes(a.category));
+    const handleSearch = (query: string) => {
+        setSearchQuery(query);
+        setActiveCategory('সব খবর'); // Reset category during search
+        window.scrollTo(0, 0);
+    };
 
-    const topStory = filteredArticles.length > 0 ? filteredArticles[0] : null;
-    const remainingStories = filteredArticles.slice(1);
+    const articlesToDisplay = searchQuery
+        ? articles.filter(a =>
+            a.headline.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            a.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            a.fullStory.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        : activeCategory === 'সব খবর'
+            ? articles
+            : articles.filter(a => a.category === activeCategory || CATEGORIES_STRUCTURED.find(c => c.name === activeCategory)?.subcategories?.includes(a.category));
+
+    const topStory = articlesToDisplay.length > 0 ? articlesToDisplay[0] : null;
+    const remainingStories = articlesToDisplay.slice(1);
 
     return (
         <div className="bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col text-gray-800 dark:text-gray-200 transition-colors duration-300">
@@ -100,6 +114,7 @@ const PublicSite: React.FC<{
                     toggleTheme={toggleTheme}
                     isMobileMenuOpen={isMobileMenuOpen}
                     onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    onSearch={handleSearch}
                 />
                  <NavigationBar
                     categories={CATEGORIES_STRUCTURED}
@@ -110,11 +125,19 @@ const PublicSite: React.FC<{
                 />
             </div>
             <main className="flex-grow container mx-auto px-4 py-8">
+                {searchQuery && (
+                    <div className="mb-8 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">
+                        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">'{searchQuery}' এর জন্য ফলাফল</h2>
+                        <button onClick={() => handleSearch('')} className="mt-2 text-red-600 hover:underline font-semibold">
+                            অনুসন্ধান মুছুন
+                        </button>
+                    </div>
+                )}
                 {isLoading && <LoadingSpinner />}
                 {error && <ErrorDisplay message={error} onRetry={() => {}} />}
                 {!isLoading && !error && (
                     <>
-                        {filteredArticles.length > 0 ? (
+                        {articlesToDisplay.length > 0 ? (
                             <>
                                 {topStory && (
                                     <HeroSection article={topStory} onReadMore={() => handleSelectArticle(topStory)} />
@@ -127,8 +150,8 @@ const PublicSite: React.FC<{
                             </>
                         ) : (
                              <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-                                <h2 className="text-2xl font-semibold">এই বিভাগে কোনো খবর পাওয়া যায়নি।</h2>
-                                <p className="mt-2">অন্য একটি বিভাগ চেষ্টা করুন।</p>
+                                <h2 className="text-2xl font-semibold">কোনো খবর পাওয়া যায়নি।</h2>
+                                <p className="mt-2">{searchQuery ? 'আপনার অনুসন্ধানের সাথে মেলে এমন কোনো ফলাফল নেই।' : 'অন্য একটি বিভাগ চেষ্টা করুন।'}</p>
                             </div>
                         )}
                         {/* Load more button is now disabled as content is managed in admin */}
