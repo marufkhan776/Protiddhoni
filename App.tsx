@@ -159,7 +159,12 @@ const PublicSite: React.FC<{
                 )}
             </main>
             {selectedArticle && (
-                <ArticleModal article={selectedArticle} onClose={handleCloseArticleModal} />
+                <ArticleModal 
+                    article={selectedArticle} 
+                    allArticles={articles}
+                    onClose={handleCloseArticleModal} 
+                    onSelectArticle={handleSelectArticle}
+                />
             )}
             {selectedPolicy && (
                 <PolicyModal 

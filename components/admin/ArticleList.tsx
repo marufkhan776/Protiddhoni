@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { contentService } from '../../services/contentService';
 import { Article } from '../../types';
@@ -9,8 +8,11 @@ interface ArticleListProps {
     onContentUpdate: () => void;
 }
 
+const ARTICLES_PER_PAGE = 10;
+
 export const ArticleList: React.FC<ArticleListProps> = ({ onEditArticle, onAddArticle, onContentUpdate }) => {
     const [articles, setArticles] = useState<Article[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         setArticles(contentService.getArticles());
@@ -21,8 +23,30 @@ export const ArticleList: React.FC<ArticleListProps> = ({ onEditArticle, onAddAr
             contentService.deleteArticle(id);
             const updatedArticles = contentService.getArticles();
             setArticles(updatedArticles);
+
+            // Adjust current page if it becomes empty after deletion
+            const newTotalPages = Math.ceil(updatedArticles.length / ARTICLES_PER_PAGE);
+            if (currentPage > newTotalPages && newTotalPages > 0) {
+                setCurrentPage(newTotalPages);
+            } else if (newTotalPages === 0) {
+                setCurrentPage(1); // Reset to page 1 if all articles are deleted
+            }
+
             onContentUpdate(); // Notify main app
         }
+    };
+
+    // Pagination logic
+    const totalPages = Math.ceil(articles.length / ARTICLES_PER_PAGE);
+    const startIndex = (currentPage - 1) * ARTICLES_PER_PAGE;
+    const paginatedArticles = articles.slice(startIndex, startIndex + ARTICLES_PER_PAGE);
+
+    const handleNextPage = () => {
+        setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    };
+
+    const handlePrevPage = () => {
+        setCurrentPage(prev => Math.max(prev - 1, 1));
     };
     
     return (
@@ -47,12 +71,12 @@ export const ArticleList: React.FC<ArticleListProps> = ({ onEditArticle, onAddAr
                         </tr>
                     </thead>
                     <tbody className="text-gray-700">
-                        {articles.map(article => (
+                        {paginatedArticles.map(article => (
                             <tr key={article.id} className="border-b border-gray-200 hover:bg-gray-50">
-                                <td className="py-3 px-4">{article.headline}</td>
+                                <td className="py-3 px-4 max-w-sm truncate" title={article.headline}>{article.headline}</td>
                                 <td className="py-3 px-4">{article.category}</td>
                                 <td className="py-3 px-4">{article.publishedDate}</td>
-                                <td className="py-3 px-4">
+                                <td className="py-3 px-4 whitespace-nowrap">
                                     <button
                                         onClick={() => onEditArticle(article.id)}
                                         className="text-sm bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded mr-2"
@@ -74,6 +98,27 @@ export const ArticleList: React.FC<ArticleListProps> = ({ onEditArticle, onAddAr
                     <p className="text-center text-gray-500 py-8">কোনো খবর পাওয়া যায়নি। নতুন খবর যোগ করুন।</p>
                 )}
             </div>
+            {totalPages > 1 && (
+                 <div className="flex justify-between items-center mt-6 pt-4 border-t">
+                    <button
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 1}
+                        className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+                    >
+                        পূর্ববর্তী
+                    </button>
+                    <span className="text-sm text-gray-700">
+                        পৃষ্ঠা {new Intl.NumberFormat('bn-BD').format(currentPage)} / {new Intl.NumberFormat('bn-BD').format(totalPages)}
+                    </span>
+                    <button
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+                    >
+                        পরবর্তী
+                    </button>
+                </div>
+            )}
         </div>
     );
 };

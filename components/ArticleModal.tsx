@@ -1,10 +1,12 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Article } from '../types';
 
 interface ArticleModalProps {
     article: Article;
+    allArticles: Article[];
     onClose: () => void;
+    onSelectArticle: (article: Article) => void;
 }
 
 const SocialShareButton: React.FC<{ onClick: () => void; 'aria-label': string; children: React.ReactNode }> = ({ onClick, 'aria-label': ariaLabel, children }) => (
@@ -17,8 +19,9 @@ const SocialShareButton: React.FC<{ onClick: () => void; 'aria-label': string; c
     </button>
 );
 
-export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) => {
+export const ArticleModal: React.FC<ArticleModalProps> = ({ article, allArticles, onClose, onSelectArticle }) => {
     const [copied, setCopied] = useState(false);
+    const modalContentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handleEscapeKey = (event: KeyboardEvent) => {
@@ -34,6 +37,13 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
             document.body.style.overflow = 'auto';
         };
     }, [onClose]);
+
+    useEffect(() => {
+        // Scroll to top when article changes
+        if (modalContentRef.current) {
+            modalContentRef.current.scrollTop = 0;
+        }
+    }, [article]);
 
     const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (e.target === e.currentTarget) {
@@ -70,6 +80,10 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
         });
     };
 
+    const relatedArticles = allArticles
+        .filter(a => a.id !== article.id && a.category === article.category)
+        .slice(0, 3);
+
     return (
         <div 
             className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center p-4"
@@ -80,7 +94,7 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{article.headline}</h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-800 dark:text-gray-500 dark:hover:text-gray-200 transition text-3xl">&times;</button>
                 </div>
-                <div className="p-6 overflow-y-auto">
+                <div className="p-6 overflow-y-auto" ref={modalContentRef}>
                     <div className="w-full h-96 rounded-lg overflow-hidden mb-6">
                          <img src={article.imageUrl} alt={article.headline} className="w-full h-full object-cover" />
                     </div>
@@ -111,6 +125,35 @@ export const ArticleModal: React.FC<ArticleModalProps> = ({ article, onClose }) 
                            <p key={index}>{paragraph}</p>
                         ))}
                     </div>
+
+                    {relatedArticles.length > 0 && (
+                        <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">আরও পড়ুন</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {relatedArticles.map(related => (
+                                    <div 
+                                        key={related.id}
+                                        className="bg-gray-50 dark:bg-gray-900 rounded-lg shadow-md overflow-hidden flex flex-col cursor-pointer transform hover:-translate-y-1 transition-all duration-300"
+                                        onClick={() => onSelectArticle(related)}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectArticle(related); }}
+                                        aria-label={`Read more about ${related.headline}`}
+                                    >
+                                        <div className="w-full h-40">
+                                            <img src={related.imageUrl} alt={related.headline} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="p-4 flex flex-col flex-grow">
+                                            <h4 className="text-md font-bold text-gray-900 dark:text-gray-100 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-300 line-clamp-3">{related.headline}</h4>
+                                            <div className="mt-auto pt-2 text-xs text-gray-500 dark:text-gray-400">
+                                                <span>{related.publishedDate}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
                  <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700 text-right">
                     <button onClick={onClose} className="bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 font-bold py-2 px-6 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition duration-300">
