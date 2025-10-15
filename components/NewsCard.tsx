@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Article } from '../types';
 
@@ -10,7 +9,7 @@ interface NewsCardProps {
 export const NewsCard: React.FC<NewsCardProps> = ({ article, onSelectArticle }) => {
     return (
         <div 
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col cursor-pointer transform hover:-translate-y-2 transition-all duration-300"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden flex flex-col cursor-pointer border border-gray-200 dark:border-gray-700 hover:border-red-500/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
             onClick={onSelectArticle}
         >
             <div className="w-full h-48">

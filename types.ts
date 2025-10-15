@@ -33,3 +33,37 @@ export interface SiteSettings {
         instagram: string;
     };
 }
+
+// Community Feature Types
+export interface CommunityUser {
+    id: string;
+    username: string;
+    passwordHash: string; // This would be a real hash in a real app
+    profilePicture: string;
+}
+
+export interface Comment {
+    id: string;
+    postId: string;
+    authorId: string;
+    content: string;
+    timestamp: string;
+}
+
+export interface Post {
+    id: string;
+    groupId: string;
+    authorId: string;
+    content: string;
+    timestamp: string;
+    comments: Comment[];
+    likeUserIds: string[];
+}
+
+export interface Group {
+    id: string;
+    name: string;
+    description: string;
+    creatorId: string;
+    memberIds: string[];
+}

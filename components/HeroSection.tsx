@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Article } from '../types';
 
@@ -9,7 +8,7 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ article, onReadMore }) => {
     return (
-        <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="grid md:grid-cols-2 gap-8 items-center bg-white dark:bg-gradient-to-br from-gray-800 to-gray-900/90 border border-transparent dark:border-gray-700 p-6 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300">
             <div className="w-full h-64 md:h-96 rounded-lg overflow-hidden">
                 <img src={article.imageUrl} alt={article.headline} className="w-full h-full object-cover" />
             </div>

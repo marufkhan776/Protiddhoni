@@ -1,8 +1,7 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Article, Category } from '../types';
 
-// IMPORTANT: The API key is now sourced from environment variables as per guidelines.
+// Fix: Initialize the Gemini API client using the API key from environment variables as required by the guidelines.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const allCategories = "জাতীয় (রাজনীতি, প্রশাসন, নির্বাচন, আইন ও আদালত, দুর্নীতি ও অপরাধ), আন্তর্জাতিক (বিশ্ব রাজনীতি, দক্ষিণ এশিয়া, মধ্যপ্রাচ্য, ইউরোপ, আমেরিকা, আফ্রিকা), অর্থনীতি (ব্যাংক ও বীমা, শেয়ারবাজার, শিল্প ও বাণিজ্য, কৃষি, চাকরি-বাজার, বৈদেশিক বাণিজ্য), খেলা (ক্রিকেট, ফুটবল, হকি, টেনিস), বিনোদন (চলচ্চিত্র, নাটক, সঙ্গীত, টেলিভিশন, বলিউড/হলিউড, সেলিব্রেটি), জীবনযাপন (স্বাস্থ্য, ফ্যাশন ও সৌন্দর্য, খাদ্য ও ভ্রমণ, পরিবার ও সম্পর্ক), প্রযুক্তি (গ্যাজেট, মোবাইল, সোশ্যাল মিডিয়া, সফটওয়্যার ও অ্যাপস, কৃত্রিম বুদ্ধিমত্তা), মতামত (সম্পাদকীয়, কলাম), শিক্ষা (ভর্তি সংবাদ, পরীক্ষার আপডেট, বৃত্তি, ক্যারিয়ার), বিজ্ঞান (গবেষণা, পরিবেশ, মহাকাশ), ধর্ম, জেলা সংবাদ, ফিচার, ছবি ও ভিডিও, অটোমোবাইল";

@@ -1,6 +1,6 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ThemeToggle } from './ThemeToggle';
+import { CommunityUser } from '../types';
 
 interface HeaderProps {
     siteName: string;
@@ -9,58 +9,178 @@ interface HeaderProps {
     isMobileMenuOpen: boolean;
     onMobileMenuToggle: () => void;
     onSearch: (query: string) => void;
+    onGoHome: () => void;
+    currentUser: CommunityUser | null;
+    onLoginClick: () => void;
+    onLogout: () => void;
+    onNavigate: (path: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ siteName, theme, toggleTheme, isMobileMenuOpen, onMobileMenuToggle, onSearch }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+    siteName, theme, toggleTheme, isMobileMenuOpen, onMobileMenuToggle, 
+    onSearch, onGoHome, currentUser, onLoginClick, onLogout, onNavigate
+}) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSearch(searchQuery.trim());
+        if (searchQuery.trim()) {
+            onSearch(searchQuery.trim());
+            setIsSearchOpen(false);
+        }
     };
+    
+    const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        setSearchQuery(''); 
+        onGoHome();
+    };
+    
+    const toggleSearch = () => {
+        setIsSearchOpen(prev => !prev);
+    };
+    
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+                setIsProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsSearchOpen(false);
+            }
+        };
+
+        if (isSearchOpen) {
+            document.addEventListener('keydown', handleKeyDown);
+            setTimeout(() => searchInputRef.current?.focus(), 100);
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isSearchOpen]);
+
+    const SearchForm = ({ inOverlay }: { inOverlay?: boolean }) => (
+        <form onSubmit={handleSearchSubmit} className={`relative w-full ${inOverlay ? 'max-w-3xl mx-auto' : ''}`}>
+            <input
+                ref={inOverlay ? searchInputRef : null}
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="খবর খুঁজুন..."
+                className="w-full pl-5 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+                aria-label="Search for news"
+            />
+            <button
+                type="submit"
+                aria-label="Submit search"
+                className="absolute right-0 top-0 h-full px-4 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-r-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </button>
+        </form>
+    );
 
     return (
-        <header>
-            <div className="container mx-auto px-4 py-4 flex justify-between items-center gap-4">
-                <a href="#/" className="flex items-center space-x-3 flex-shrink-0" aria-label="Homepage">
-                     <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                        স
+        <header className="border-b border-gray-200 dark:border-gray-700 relative">
+            <div className="container mx-auto px-4 py-3">
+                <div className="flex items-center justify-between gap-4">
+                    
+                    {/* Left section: Logo */}
+                    <div className="flex-shrink-0">
+                        <a href="#/" onClick={handleLogoClick} className="flex items-center space-x-3" aria-label="Homepage">
+                             <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+                                স
+                            </div>
+                            <h1 className="text-2xl lg:text-3xl font-semibold text-gray-800 dark:text-gray-100 hidden sm:block">{siteName}</h1>
+                        </a>
                     </div>
-                    <h1 className="hidden sm:block text-3xl font-bold text-gray-800 dark:text-gray-100">{siteName}</h1>
-                </a>
-                <div className="flex-grow max-w-lg">
-                    <form onSubmit={handleSearchSubmit} className="relative w-full">
-                        <input
-                            type="search"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="খবর খুঁজুন..."
-                            className="w-full pl-4 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
-                        />
+
+                    {/* Right section: Controls */}
+                    <div className="flex items-center space-x-2">
                         <button
-                            type="submit"
-                            aria-label="Search"
-                            className="absolute right-0 top-0 h-full px-3 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                            onClick={toggleSearch}
+                            className="hidden md:flex w-10 h-10 items-center justify-center rounded-full p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-red-500"
+                            aria-label="Open search bar"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </button>
-                    </form>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-                    <button 
-                        className="md:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 focus:outline-none"
-                        onClick={onMobileMenuToggle}
-                        aria-label="Toggle categories menu"
-                        aria-expanded={isMobileMenuOpen}
-                    >
-                        <div className="w-6 h-6 flex flex-col justify-around items-center">
-                            <span className={`block w-6 h-0.5 bg-current transform transition duration-300 ease-in-out ${isMobileMenuOpen ? 'rotate-45 translate-y-[5px]' : ''}`}></span>
-                            <span className={`block w-6 h-0.5 bg-current transition duration-300 ease-in-out ${isMobileMenuOpen ? 'opacity-0' : ''}`}></span>
-                            <span className={`block w-6 h-0.5 bg-current transform transition duration-300 ease-in-out ${isMobileMenuOpen ? '-rotate-45 -translate-y-[5px]' : ''}`}></span>
+                        
+                        <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+
+                        {/* User Auth Section */}
+                        <div className="border-l border-gray-200 dark:border-gray-700 pl-2 ml-2">
+                            {currentUser ? (
+                                <div className="relative" ref={profileMenuRef}>
+                                    <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="flex items-center space-x-2">
+                                        <img src={currentUser.profilePicture} alt={currentUser.username} className="w-9 h-9 rounded-full object-cover" />
+                                        <span className="hidden lg:inline font-semibold text-sm">{currentUser.username}</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 hidden lg:inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                    </button>
+                                    {isProfileMenuOpen && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50">
+                                            <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">স্বাগতম, <strong>{currentUser.username}</strong></div>
+                                            <div className="border-t border-gray-200 dark:border-gray-700"></div>
+                                            <button onClick={() => { onNavigate(`#/profile/${currentUser.id}`); setIsProfileMenuOpen(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">আমার প্রোফাইল</button>
+                                            <div className="border-t border-gray-200 dark:border-gray-700"></div>
+                                            <button onClick={onLogout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">লগআউট</button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <button onClick={onLoginClick} className="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition duration-300 text-sm">
+                                    লগইন / রেজিস্টার
+                                </button>
+                            )}
                         </div>
+
+                        {/* Mobile Menu Icon */}
+                        <div className="md:hidden">
+                            <button 
+                                className="p-2 rounded-md text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500"
+                                onClick={onMobileMenuToggle}
+                                aria-label="Toggle categories menu"
+                                aria-expanded={isMobileMenuOpen}
+                            >
+                                <div className="w-6 h-6 flex flex-col justify-around items-center">
+                                    <span className={`block w-6 h-0.5 bg-current transform transition duration-300 ease-in-out ${isMobileMenuOpen ? 'rotate-45 translate-y-[5px]' : ''}`}></span>
+                                    <span className={`block w-6 h-0.5 bg-current transition duration-300 ease-in-out ${isMobileMenuOpen ? 'opacity-0' : ''}`}></span>
+                                    <span className={`block w-6 h-0.5 bg-current transform transition duration-300 ease-in-out ${isMobileMenuOpen ? '-rotate-45 -translate-y-[5px]' : ''}`}></span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Desktop Search Overlay */}
+            <div 
+                className={`absolute top-0 left-0 right-0 z-30 bg-white dark:bg-gray-800 shadow-lg transition-transform duration-300 ease-in-out md:flex hidden items-center ${isSearchOpen ? 'translate-y-0' : '-translate-y-full'}`}
+                aria-hidden={!isSearchOpen}
+            >
+                <div className="container mx-auto px-4 py-3 flex items-center gap-4">
+                    <div className="flex-grow">
+                        <SearchForm inOverlay={true} />
+                    </div>
+                    <button onClick={toggleSearch} className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400" aria-label="Close search bar">
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                         </svg>
                     </button>
                 </div>
             </div>
