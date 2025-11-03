@@ -84,10 +84,14 @@ const initDefaultData = () => {
 
         const groups = getFromStorage<Group[]>(GROUPS_KEY, []);
         if (groups.length === 0) {
-            // Create default groups
+            // Create default groups, ensuring AI is a member of all
             const defaultGroups: Group[] = [
                 { id: 'group_1', name: 'সাধারণ আলোচনা', description: 'সবকিছু নিয়ে আলোচনার জন্য একটি জায়গা।', creatorId: 'user_1', memberIds: ['user_1', 'user_2', 'user_3', 'user_ai'] },
-                { id: 'group_2', name: 'খেলাধুলা কর্নার', description: 'ক্রিকেট, ফুটবল এবং অন্যান্য খেলা নিয়ে আড্ডা।', creatorId: 'user_1', memberIds: ['user_1', 'user_3'] }
+                { id: 'group_2', name: 'খেলাধুলা কর্নার', description: 'ক্রিকেট, ফুটবল এবং অন্যান্য খেলা নিয়ে আড্ডা।', creatorId: 'user_1', memberIds: ['user_1', 'user_3', 'user_ai'] },
+                { id: 'group_3', name: 'প্রযুক্তি জগৎ', description: 'সর্বশেষ গ্যাজেট, সফটওয়্যার এবং কৃত্রিম বুদ্ধিমত্তা নিয়ে আলোচনা করুন।', creatorId: 'user_2', memberIds: ['user_1', 'user_2', 'user_ai'] },
+                { id: 'group_4', name: 'বিনোদন জংশন', description: 'চলচ্চিত্র, সঙ্গীত, এবং তারকাদের জগতের সব খবর ও আড্ডা।', creatorId: 'user_1', memberIds: ['user_1', 'user_2', 'user_ai'] },
+                { id: 'group_5', name: 'অর্থনীতি ও ব্যবসা', description: 'শেয়ারবাজার, ব্যাংকিং এবং বাণিজ্য জগতের বিশ্লেষণ ও মতামত।', creatorId: 'user_3', memberIds: ['user_1', 'user_3', 'user_ai'] },
+                { id: 'group_6', name: 'স্বাস্থ্য ও জীবনযাপন', description: 'স্বাস্থ্যকর জীবন, ভ্রমণ এবং ফ্যাশন নিয়ে টিপস ও আলোচনা।', creatorId: 'user_2', memberIds: ['user_1', 'user_2', 'user_ai'] }
             ];
             saveToStorage(GROUPS_KEY, defaultGroups);
 
@@ -115,6 +119,18 @@ const initDefaultData = () => {
         // Migration for existing users who might not have the friendIds property
         const migratedUsers = users.map(u => ({ ...u, friendIds: u.friendIds || [] }));
         saveToStorage(USERS_KEY, migratedUsers);
+
+        // --- Migration to add AI to all existing groups ---
+        const allGroups = getFromStorage<Group[]>(GROUPS_KEY, []);
+        if (allGroups.length > 0 && users.some(u => u.id === 'user_ai')) {
+            const migratedGroups = allGroups.map(group => {
+                if (!group.memberIds.includes('user_ai')) {
+                    group.memberIds.push('user_ai');
+                }
+                return group;
+            });
+            saveToStorage(GROUPS_KEY, migratedGroups);
+        }
     }
 };
 
@@ -319,7 +335,8 @@ export const communityService = {
             name,
             description,
             creatorId: creator.id,
-            memberIds: [creator.id]
+            // Automatically add the creator and the AI assistant to the new group
+            memberIds: [...new Set([creator.id, 'user_ai'])]
         };
         groups.push(newGroup);
         saveToStorage(GROUPS_KEY, groups);
