@@ -15,7 +15,7 @@ interface FeedViewProps {
 export const FeedView: React.FC<FeedViewProps> = ({ currentUser, onLoginClick, onNavigate }) => {
     const [posts, setPosts] = useState<Post[]>([]);
     const [userGroups, setUserGroups] = useState<Group[]>([]);
-    const [allUsers, setAllUsers] = useState<CommunityUser[]>([]);
+    const [friends, setFriends] = useState<CommunityUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
 
@@ -24,7 +24,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ currentUser, onLoginClick, o
             setIsLoading(true);
             setPosts(communityService.getFeedForUser(currentUser.id));
             setUserGroups(communityService.getGroupsForUser(currentUser.id));
-            setAllUsers(communityService.getAllUsers());
+            setFriends(communityService.getFriendsForUser(currentUser.id));
             setIsLoading(false);
         }
     }, [currentUser]);
@@ -35,6 +35,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ currentUser, onLoginClick, o
         } else {
             setPosts([]);
             setUserGroups([]);
+            setFriends([]);
             setIsLoading(false);
         }
     }, [currentUser, refreshFeed]);
@@ -70,8 +71,6 @@ export const FeedView: React.FC<FeedViewProps> = ({ currentUser, onLoginClick, o
             </main>
         );
     }
-
-    const contacts = allUsers.filter(u => u.id !== currentUser.id);
 
     return (
         <div className="bg-gray-100 dark:bg-gray-900/95">
@@ -134,16 +133,18 @@ export const FeedView: React.FC<FeedViewProps> = ({ currentUser, onLoginClick, o
                      <aside className="hidden lg:block lg:col-span-3">
                         <div className="sticky top-24 space-y-4">
                              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-                                <h3 className="font-bold text-lg mb-3 text-gray-800 dark:text-gray-100">যোগাযোগ</h3>
+                                <h3 className="font-bold text-lg mb-3 text-gray-800 dark:text-gray-100">বন্ধুরা</h3>
                                 <ul className="space-y-2">
-                                    {contacts.map(user => (
+                                    {friends.length > 0 ? friends.map(user => (
                                         <li key={user.id}>
-                                            <button className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left">
+                                            <button onClick={() => onNavigate(`#/profile/${user.id}`)} className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left">
                                                 <img src={user.profilePicture} alt={user.username} className="w-9 h-9 rounded-full object-cover" />
                                                 <span className="font-semibold text-sm text-gray-700 dark:text-gray-300">{user.username}</span>
                                             </button>
                                         </li>
-                                    ))}
+                                    )) : (
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">আপনার কোনো বন্ধু নেই।</p>
+                                    )}
                                 </ul>
                             </div>
                         </div>

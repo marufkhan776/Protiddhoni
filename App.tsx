@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { HeroSection } from './components/HeroSection';
@@ -17,11 +18,14 @@ import { authService } from './services/authService';
 import { contentService } from './services/contentService';
 import { generateNews } from './services/newsService';
 import { communityService } from './services/communityService';
+import { notificationService } from './services/notificationService';
 import { UserAuthModal } from './components/community/UserAuthModal';
 import { GroupsView } from './components/community/GroupsView';
 import { GroupDetailView } from './components/community/GroupDetailView';
 import { FeedView } from './components/community/FeedView';
 import { ProfileView } from './components/community/ProfileView';
+import { NotificationPanel } from './components/notifications/NotificationPanel';
+import { FriendRequestPanel } from './components/community/FriendRequestPanel';
 
 const App: React.FC = () => {
     // Admin State
@@ -54,6 +58,13 @@ const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<CommunityUser | null>(communityService.getCurrentUser());
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     
+    // Notification & Friend Request State
+    const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+    const [isFriendRequestPanelOpen, setIsFriendRequestPanelOpen] = useState(false);
+    const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+    const [unreadFriendRequestCount, setUnreadFriendRequestCount] = useState(0);
+    const panelsRef = useRef<HTMLDivElement>(null);
+
     // Theme State
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         if (typeof window !== 'undefined' && localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -167,7 +178,47 @@ const App: React.FC = () => {
         setIsAdminLoggedIn(false);
         navigateTo('#/');
     };
-    
+
+    // --- Notification & Friend Request Logic ---
+    const refreshUnreadCounts = useCallback(() => {
+        if (currentUser) {
+            setUnreadNotificationCount(notificationService.getUnreadCountForUser(currentUser.id));
+            setUnreadFriendRequestCount(communityService.getPendingFriendRequestsForUser(currentUser.id).length);
+        } else {
+            setUnreadNotificationCount(0);
+            setUnreadFriendRequestCount(0);
+        }
+    }, [currentUser]);
+
+    useEffect(() => {
+        refreshUnreadCounts();
+    }, [currentUser, refreshUnreadCounts]);
+
+    const handleToggleNotificationPanel = () => {
+        setIsFriendRequestPanelOpen(false); // Close other panel
+        setIsNotificationPanelOpen(prev => !prev);
+    };
+
+    const handleToggleFriendRequestPanel = () => {
+        setIsNotificationPanelOpen(false); // Close other panel
+        setIsFriendRequestPanelOpen(prev => !prev);
+    };
+
+    const closeAllPanels = () => {
+        setIsNotificationPanelOpen(false);
+        setIsFriendRequestPanelOpen(false);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (panelsRef.current && !panelsRef.current.contains(event.target as Node)) {
+                closeAllPanels();
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     if (isInitializing) {
         return <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900"><LoadingSpinner /></div>;
     }
@@ -189,7 +240,7 @@ const App: React.FC = () => {
 
         if (route.startsWith('#/profile/')) {
             const userId = route.split('/')[2];
-            return <ProfileView userId={userId} currentUser={currentUser} onNavigate={navigateTo} />;
+            return <ProfileView userId={userId} currentUser={currentUser} onNavigate={navigateTo} onDataChange={refreshUnreadCounts} />;
         }
         
         if (route.startsWith('#/feed')) {
@@ -278,6 +329,10 @@ const App: React.FC = () => {
                     onLoginClick={() => setIsAuthModalOpen(true)}
                     onLogout={handleUserLogout}
                     onNavigate={navigateTo}
+                    unreadNotificationCount={unreadNotificationCount}
+                    onToggleNotificationPanel={handleToggleNotificationPanel}
+                    unreadFriendRequestCount={unreadFriendRequestCount}
+                    onToggleFriendRequestPanel={handleToggleFriendRequestPanel}
                 />
                  <NavigationBar
                     categories={CATEGORIES_STRUCTURED}
@@ -291,6 +346,31 @@ const App: React.FC = () => {
                     toggleTheme={toggleTheme}
                     socialLinks={settings.socialLinks}
                 />
+            </div>
+
+            <div ref={panelsRef} className="relative">
+                {isNotificationPanelOpen && currentUser && (
+                    <NotificationPanel
+                        currentUser={currentUser}
+                        onClose={handleToggleNotificationPanel}
+                        onNavigate={(path) => {
+                            navigateTo(path);
+                            closeAllPanels();
+                        }}
+                        onDataChange={refreshUnreadCounts}
+                    />
+                )}
+                {isFriendRequestPanelOpen && currentUser && (
+                    <FriendRequestPanel
+                        currentUser={currentUser}
+                        onClose={handleToggleFriendRequestPanel}
+                        onNavigate={(path) => {
+                            navigateTo(path);
+                            closeAllPanels();
+                        }}
+                        onDataChange={refreshUnreadCounts}
+                    />
+                )}
             </div>
             
             {renderView()}

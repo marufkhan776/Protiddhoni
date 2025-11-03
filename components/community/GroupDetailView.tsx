@@ -1,8 +1,9 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { communityService } from '../../services/communityService';
 import { Group, Post, CommunityUser } from '../../types';
 import { PostCard } from './PostCard';
+import { CreatePostModal } from './CreatePostModal';
+import { ChatView } from './ChatView';
 
 interface GroupDetailViewProps {
     groupId: string;
@@ -10,48 +11,13 @@ interface GroupDetailViewProps {
     onNavigate: (path: string) => void;
 }
 
-const CreatePostForm: React.FC<{
-    group: Group;
-    currentUser: CommunityUser;
-    onPostCreated: (post: Post) => void;
-}> = ({ group, currentUser, onPostCreated }) => {
-    const [content, setContent] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!content.trim()) return;
-        setIsLoading(true);
-        const newPost = communityService.createPost(group.id, currentUser.id, content);
-        onPostCreated(newPost);
-        setContent('');
-        setIsLoading(false);
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-8">
-            <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="আপনার মতামত লিখুন..."
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                rows={3}
-                required
-            />
-            <div className="flex justify-end mt-2">
-                <button type="submit" disabled={isLoading} className="bg-red-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-red-700 transition duration-300 disabled:bg-red-400">
-                    {isLoading ? 'পোস্ট হচ্ছে...' : 'পোস্ট করুন'}
-                </button>
-            </div>
-        </form>
-    );
-};
-
 export const GroupDetailView: React.FC<GroupDetailViewProps> = ({ groupId, currentUser, onNavigate }) => {
     const [group, setGroup] = useState<Group | null>(null);
     const [posts, setPosts] = useState<Post[]>([]);
     const [members, setMembers] = useState<CommunityUser[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'posts' | 'chat'>('posts');
 
     const refreshData = useCallback(() => {
         const foundGroup = communityService.getGroupById(groupId);
@@ -113,31 +79,73 @@ export const GroupDetailView: React.FC<GroupDetailViewProps> = ({ groupId, curre
                 </div>
             </div>
 
-            {currentUser && isMember && (
-                <CreatePostForm 
-                    group={group} 
-                    currentUser={currentUser}
-                    onPostCreated={(newPost) => setPosts(prev => [newPost, ...prev])}
-                />
-            )}
-            
-            <div className="space-y-6 max-w-3xl mx-auto">
-                {posts.map(post => (
-                    <PostCard 
-                        key={post.id} 
-                        post={post}
-                        currentUser={currentUser}
-                        onDataChange={refreshData}
-                        onNavigate={onNavigate}
-                    />
-                ))}
-            </div>
-            
-            {posts.length === 0 && (
-                 <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-3xl mx-auto">
-                    <h2 className="text-2xl font-semibold">এখনও কোনো পোস্ট নেই।</h2>
-                    <p className="mt-2">{isMember ? 'প্রথম পোস্টটি আপনিই করুন!' : 'গ্রুপে যোগ দিয়ে আলোচনা শুরু করুন।'}</p>
+            {isMember && (
+                <div className="border-b border-gray-200 dark:border-gray-700 flex mb-8 max-w-3xl mx-auto">
+                    <button 
+                        onClick={() => setActiveTab('posts')}
+                        className={`flex-1 py-3 font-semibold text-center ${activeTab === 'posts' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-500 dark:text-gray-400'}`}
+                    >
+                        পোস্টসমূহ
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('chat')}
+                        className={`flex-1 py-3 font-semibold text-center ${activeTab === 'chat' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-500 dark:text-gray-400'}`}
+                    >
+                        চ্যাট
+                    </button>
                 </div>
+            )}
+
+            {activeTab === 'posts' ? (
+                <>
+                    {currentUser && isMember && (
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-8 max-w-3xl mx-auto">
+                            <div className="flex items-center gap-3">
+                                <img src={currentUser.profilePicture} alt={currentUser.username} className="w-10 h-10 rounded-full object-cover" />
+                                <button 
+                                    onClick={() => setIsCreatePostModalOpen(true)}
+                                    className="flex-grow bg-gray-100 dark:bg-gray-700 rounded-full h-10 px-4 text-left text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                    একটি পোস্ট লিখুন...
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <div className="space-y-6 max-w-3xl mx-auto">
+                        {posts.map(post => (
+                            <PostCard 
+                                key={post.id} 
+                                post={post}
+                                currentUser={currentUser}
+                                onDataChange={refreshData}
+                                onNavigate={onNavigate}
+                            />
+                        ))}
+                    </div>
+                    
+                    {posts.length === 0 && (
+                        <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-3xl mx-auto">
+                            <h2 className="text-2xl font-semibold">এখনও কোনো পোস্ট নেই।</h2>
+                            <p className="mt-2">{isMember ? 'প্রথম পোস্টটি আপনিই করুন!' : 'গ্রুপে যোগ দিয়ে আলোচনা শুরু করুন।'}</p>
+                        </div>
+                    )}
+                </>
+            ) : (
+                <ChatView groupId={groupId} currentUser={currentUser} />
+            )}
+
+            
+            {isCreatePostModalOpen && currentUser && group && (
+                <CreatePostModal 
+                    currentUser={currentUser}
+                    userGroups={[group]}
+                    defaultGroupId={group.id}
+                    onClose={() => setIsCreatePostModalOpen(false)}
+                    onPostCreated={() => {
+                        setIsCreatePostModalOpen(false);
+                        refreshData();
+                    }}
+                />
             )}
         </main>
     );

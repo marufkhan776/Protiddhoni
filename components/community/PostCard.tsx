@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 // Fix: Import 'Group' type to resolve 'Cannot find name 'Group'' error.
 import { Post, CommunityUser, Comment, Group } from '../../types';
 import { communityService } from '../../services/communityService';
+import { SharePostModal } from './SharePostModal';
 
 interface PostCardProps {
     post: Post;
@@ -83,6 +84,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
     const [editedContent, setEditedContent] = useState(post.content);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
 
     useEffect(() => {
@@ -159,7 +161,8 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
     }
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow relative">
             <div className="p-4">
                  <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-3 mb-4">
@@ -217,6 +220,11 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
                     </p>
                 )}
             </div>
+             {post.imageUrl && !isEditing && (
+                <div className="mt-2 bg-gray-100 dark:bg-gray-900">
+                    <img src={post.imageUrl} alt="" className="w-full max-h-[500px] object-contain" />
+                </div>
+            )}
             
             {!isEditing && (
                 <>
@@ -248,7 +256,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
                         </svg>
                         মন্তব্য
                     </button>
-                     <button className="flex-1 flex justify-center items-center gap-2 py-2 rounded-br-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                     <button onClick={() => setIsShareModalOpen(true)} className="flex-1 flex justify-center items-center gap-2 py-2 rounded-br-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
                         </svg>
@@ -270,5 +278,14 @@ export const PostCard: React.FC<PostCardProps> = ({ post, currentUser, onDataCha
                 </>
             )}
         </div>
+        {isShareModalOpen && author && group && (
+            <SharePostModal 
+                post={post}
+                group={group}
+                author={author}
+                onClose={() => setIsShareModalOpen(false)}
+            />
+        )}
+        </>
     );
 };
